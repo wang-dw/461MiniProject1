@@ -15,7 +15,7 @@ public class Main {
 	static int mu2 = 5;
 	final static int MAXBUFFER = 5;
 
-	public static double getPoissonRandom(double mean) {
+	public static int getPoissonRandom(double mean) {
 		Random r = new Random();
 		double L = Math.exp(-mean);
 		int k = 0;
@@ -50,20 +50,31 @@ public class Main {
 		int blocked2 = 0;
 
 		for (int i = 0; i < packets; ++i) { // go through each packet
-			double arrival = getPoissonRandom(lambda); // arrival of packet
+			double arrival = getPoissonRandom(lambda); // arrival time of packet
 			double service1 = serviceTime(mu1); // service times of each queue
 			double service2 = serviceTime(mu2);
-			
-			if (i > 1000) {
+
+			if (i > 0) {
+				double arrival1 = arrival;
+				double arrival2 = arrival;
 				if (chooseQueue1()) { // if queue 1 is chosen
 					if (queue1.size() < MAXBUFFER) { // if buffer is not full
 						queue1.add(service1); // add packet servicing time to queue
-						while (arrival > 0 && queue1.size() > 0) { // while packet still arriving
-							arrival = arrival - queue1.peek(); // subtract servicing time from arrival
-							if (arrival > 0) { // if packet still arriving
+						while (arrival1 > 0 && queue1.size() > 0) { // while packet still arriving
+							arrival1 = arrival1 - queue1.peek(); // subtract servicing time from arrival
+							if (arrival1 > 0) { // if packet still arriving
 								queue1.poll(); // remove packet in queue
 							} else { // if packet arrives
-								queue1.add(arrival + queue1.poll()); // remove packet and add time difference
+								queue1.add(arrival + queue1.peek()); // remove packet and add time difference
+								queue1.poll();
+							}
+						}
+						while (arrival2 > 0 && queue2.size() > 0) { // while packet still arriving
+							if (arrival2 > 0) { // if packet still arriving
+								queue2.poll(); // remove packet in queue
+							} else { // if packet arrives
+								queue2.add(arrival2 + queue2.peek()); // remove packet and add time difference
+								queue2.poll();
 							}
 						}
 					} else {
@@ -71,11 +82,22 @@ public class Main {
 					}
 				} else {
 					if (queue2.size() < MAXBUFFER) { // if buffer is not full
-						queue2.add(service2);
-						while (arrival > 0 && queue2.size() > 0) {
-							arrival = arrival - queue2.peek();
-							if (arrival > 0) {
+						queue2.add(service2); // add packet servicing time to queue
+						while (arrival2 > 0 && queue2.size() > 0) { // while packet still arriving
+							arrival2 = arrival2 - queue2.peek(); // subtract servicing time from arrival
+							if (arrival2 > 0) { // if packet still arriving
+								queue2.poll(); // remove packet in queue
+							} else { // if packet arrives
+								queue2.add(arrival2 + queue2.peek()); // remove packet and add time difference
 								queue2.poll();
+							}
+						}
+						while (arrival1 > 0 && queue1.size() > 0) { // while packet still arriving
+							if (arrival1 > 0) { // if packet still arriving
+								queue1.poll(); // remove packet in queue
+							} else { // if packet arrives
+								queue1.add(arrival1 + queue1.peek()); // remove packet and add time difference
+								queue1.poll();
 							}
 						}
 					} else {
