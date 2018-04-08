@@ -10,10 +10,11 @@ import java.util.*;
 public class Main {
 
 	static int packets = 100000;
-	static int lambda = 8;
+	static double lambda = 8;
 	static int mu1 = 5;
 	static int mu2 = 5;
-	final static int MAXBUFFER = 5;
+	static double phi = .5;
+	final static int MAXBUFFER = 6;
 
 	public static int getPoissonRandom(double mean) {
 		Random r = new Random();
@@ -29,13 +30,14 @@ public class Main {
 
 	public static boolean chooseQueue() {
 		Random rand = new Random();
-		double phi = 0.5;
 		double number = rand.nextDouble();
+
 		if (number <= phi) {
 			return true;
 		} else {
 			return false;
 		}
+
 	}
 
 	public static double serviceTime(double mean) {
@@ -46,95 +48,87 @@ public class Main {
 	public static void main(String[] args) {
 		PriorityQueue<Double> queue1 = new PriorityQueue<Double>();
 		PriorityQueue<Double> queue2 = new PriorityQueue<Double>();
-		double blocked1 = 0.0;
-		double blocked2 = 0.0;
-		double total1 = 0.0;
-		double total2 = 0.0;
+		double blocked1 = 0;
+		double blocked2 = 0;
+		double total1 = 0;
+		double total2 = 0;
 		double delay1 = 0;
 		double delay2 = 0;
 
+		double timePassed1 = 0;
+		double timePassed2 = 0;
+
 		for (int i = 0; i < packets; ++i) { // go through each packet
-			double arrival = getPoissonRandom(lambda); // arrival time of packet
-			double service1 = serviceTime(mu1); // service times of each queue
-			double service2 = serviceTime(mu2);
-			double arrival1 = arrival;
-			double arrival2 = arrival;
+			double arrival = getPoissonRandom(1 / lambda); // arrival time of packet
 
-			if (i > 1000) {
+			// calculate when to remove from queue, if enough time pass, remove from queue
+			if (queue1.size() > 0) {
+				if (timePassed1 > queue1.peek()) {
+					timePassed1 -= queue1.poll();
+					delay1 += timePassed1;
+				}
+				timePassed1 += arrival;
+			} else {
+				timePassed1 = 0;
+			}
 
-				if (chooseQueue()) { // if queue 1 is chosen
+			// calculate when to remove from queue, if enough time pass, remove from queue
+			if (queue2.size() > 0) {
+				if (timePassed2 > queue2.peek()) {
+					timePassed2 -= queue2.poll();
+					delay2 += timePassed2;
+				}
+				timePassed2 += arrival;
+			} else {
+				timePassed2 = 0;
+			}
+
+			if (i > 10000) {
+				// packet arrive, add it to a queue
+				if (chooseQueue()) {
 					total1++;
-					if (queue1.size() < MAXBUFFER) { // if buffer is not full
-						queue1.add(service1); // add packet servicing time to queue
-
-						while (arrival1 > 0 && queue1.size() > 0) { // while packet still arriving
-							arrival1 = queue1.peek()-arrival1; // subtract servicing time from arrival
-							if (arrival1 > 0) { // if packet still arriving
-								queue1.poll(); // remove packet in queue
-							} else { // if packet arrives
-								queue1.add(Math.abs(arrival1)); // remove packet and add time difference
-								delay1 += Math.abs(arrival1);
-								queue1.poll();
-							}
-						}
-
+					if (queue1.size() <= MAXBUFFER) {
+						queue1.add(serviceTime(1 / mu1));
 					} else {
 						blocked1++;
 					}
-
-					while (arrival2 > 0 && queue2.size() > 0) { // while packet still arriving
-						arrival2 = queue2.peek()-arrival2;
-						if (arrival2 > 0) { // if packet still arriving
-							queue2.poll(); // remove packet in queue
-						} else { // if packet arrives
-							queue2.add(Math.abs(arrival2)); // remove packet and add time difference
-							delay2 += Math.abs(arrival2);
-							queue2.poll();
-						}
-					}
-				}
-//////////////////////////////////////////////////////QUEUE2///////////////////////////////////////////////////////////
-				else { // if queue 2 is chosen
+				} else {
 					total2++;
-					if (queue2.size() < MAXBUFFER) { // if buffer is not full
-						queue2.add(service2); // add packet servicing time to queue
-
-						while (arrival2 > 0 && queue2.size() > 0) { // while packet still arriving
-							arrival2 = queue2.peek()-arrival2; // subtract servicing time from arrival
-							if (arrival2 > 0) { // if packet still arriving
-								queue2.poll(); // remove packet in queue
-							} else { // if packet arrives
-								queue2.add(Math.abs(arrival2)); // remove packet and add time difference
-								delay2 += Math.abs(arrival2);
-								queue2.poll();
-							}
-						}
-
+					if (queue2.size() <= MAXBUFFER) {
+						queue2.add(serviceTime(1 / mu2));
 					} else {
 						blocked2++;
 					}
-
-					while (arrival1 > 0 && queue1.size() > 0) { // while packet still arriving
-						arrival1 = queue1.peek()-arrival1;
-						if (arrival1 > 0) { // if packet still arriving
-							queue1.poll(); // remove packet in queue
-						} else { // if packet arrives
-							queue1.add(Math.abs(arrival1)); // remove packet and add time difference
-							delay1 += Math.abs(arrival1);
-							queue1.poll();
-						}
-					}
 				}
 			}
+
 		}
 
-		System.out.println("Blocked 1: " + blocked1 / total1);
-		System.out.println("Blocked 2: " + blocked2 / total2);
-		System.out.println("Blocked System: " + (blocked1 + blocked2) / (total1 + total2));
-		System.out.println("Delay 1: " + delay1);
-		System.out.println("Delay 2: " + delay2);
-		System.out.println("Blocked 2: " + blocked2);
-		System.out.println("Blocked 1: " + blocked1);
-		System.out.println("Blocked 2: " + blocked2);
+		double blockedQ1 = blocked1 / total1;
+		double blockedQ2 = blocked2 / total2;
+		double blockedAll = (blocked1 + blocked2) / (total1 + total2);
+		double delayQ1 = delay1 / total1;
+		double delayQ2 = delay2 / total2;
+		double delayAll = (delay1 + delay2) / (total1 + total2);
+		double throughputQ1 = (total1 - blocked1) / total1;
+		double throughputQ2 = (total2 - blocked2) / total2;
+		double throughputAll = ((total1 + total2) - (blocked1 + blocked2)) / (total1 + total2);
+		double averagePacketsQ1 = lambda * phi * (1 - blockedQ1) * delayQ1;
+		double averagePacketsQ2 = lambda * (1 - phi) * (1 - blockedQ2) * delayQ2;
+		double averagePacketsAll = lambda * (1 - blockedAll) * delayAll;
+
+		System.out.println("Blocked 1: " + blockedQ1);
+		System.out.println("Blocked 2: " + blockedQ2);
+		System.out.println("Blocked System: " + blockedAll);
+		System.out.println("Delay 1: " + delayQ1);
+		System.out.println("delay 2: " + delayQ2);
+		System.out.println("Delay System: " + delayAll);
+		System.out.println("Throughput 1: " + throughputQ1);
+		System.out.println("Throughput 2: " + throughputQ2);
+		System.out.println("Throughput System: " + throughputAll);
+		System.out.println("Average Packets 1: " + averagePacketsQ1);
+		System.out.println("Averqage Packets 2: " + averagePacketsQ2);
+		System.out.println("Averqage Packets System: " + averagePacketsAll);
 	}
+
 }
