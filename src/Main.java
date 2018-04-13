@@ -16,7 +16,7 @@ public class Main {
 	static double phi = .4;
 	final static int MAXBUFFER = 5;
 
-	public static double getPoissonRandom(double mean) {
+	public static double getPoissonRandom(double mean) { // get arrival time
 		Random r = new Random();
 		double L = Math.exp(-mean);
 		int k = 0;
@@ -28,7 +28,7 @@ public class Main {
 		return k - 1;
 	}
 
-	public static boolean chooseQueue() {
+	public static boolean chooseQueue() { // choose queue 1
 		Random rand = new Random();
 		double number = rand.nextDouble();
 
@@ -40,7 +40,7 @@ public class Main {
 
 	}
 
-	public static double serviceTime(double mean) {
+	public static double serviceTime(double mean) { // get service time
 		Random rand = new Random();
 		return Math.log(1 - rand.nextDouble()) / (-(mean));
 	}
@@ -69,42 +69,42 @@ public class Main {
 			double timePassed1 = 0;
 			double timePassed2 = 0;
 
-			if (i > 100000) {
+			if (i > 100000) { // skip first few packets
 				// packet arrive, add it to a queue
-				if (chooseQueue()) {
+				if (chooseQueue()) { // if queue 1 is chosen
 					total1++;
-					if (queue1.size() <= MAXBUFFER) {
-						queue1.add(serviceTime(mu1));
-					} else {
-						blocked1++;
+					if (queue1.size() <= MAXBUFFER) { // if buffer isn't full
+						queue1.add(serviceTime(mu1)); // add service time to queue
+					} else { // if buffer is full
+						blocked1++; // +1 to blocked packets
 					}
-				} else {
+				} else { // if queue 2 is chose
 					total2++;
-					if (queue2.size() <= MAXBUFFER) {
-						queue2.add(serviceTime(mu2));
-					} else {
-						blocked2++;
+					if (queue2.size() <= MAXBUFFER) {// if buffer isn't full
+						queue2.add(serviceTime(mu2));// add service time to queue
+					} else {// if buffer is full
+						blocked2++;// +1 to blocked packets
 					}
 				}
 			}
 
 			// calculate when to remove from queue, if enough time pass, remove from queue
-			while (queue1.size() > 0 && timePassed1 < arrival) {
-				timePassed1 += queue1.peek();
+			while (queue1.size() > 0 && timePassed1 < arrival) { // while queue isn't empty and packet hasn't arrived
+				timePassed1 += queue1.peek(); // service time passes
 				delay1 += queue1.peek();
-				queue1.poll();
-				if (timePassed1 > arrival) {
-					queue1.add(timePassed1 - arrival);
+				queue1.poll(); // remove service time
+				if (timePassed1 > arrival) { // if packet arrives
+					queue1.add(timePassed1 - arrival); // add difference of time to queue
 				}
 			}
 
 			// calculate when to remove from queue, if enough time pass, remove from queue
-			while (queue2.size() > 0 && timePassed2 < arrival) {
-				timePassed2 += queue2.peek();
+			while (queue2.size() > 0 && timePassed2 < arrival) { // while queue isn't empty and packet hasn't arrived
+				timePassed2 += queue2.peek(); // service time passes
 				delay2 += queue2.peek();
-				queue2.poll();
-				if (timePassed2 > arrival) {
-					queue2.add(timePassed2 - arrival);
+				queue2.poll(); // remove service time
+				if (timePassed2 > arrival) { // if packet arrives
+					queue2.add(timePassed2 - arrival); // add difference of time to queue
 				}
 			}
 
@@ -135,8 +135,6 @@ public class Main {
 		System.out.println("Average Packets 1: " + averagePacketsQ1);
 		System.out.println("Average Packets 2: " + averagePacketsQ2);
 		System.out.println("Average Packets System: " + averagePacketsAll);
-		System.out.println(1/getPoissonRandom(lambda));
-		System.out.println(serviceTime(mu1));
 	}
 
 }
