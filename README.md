@@ -1,2 +1,2 @@
 # 461MiniProject1
-2 This is Wrong
+This is Wrong
